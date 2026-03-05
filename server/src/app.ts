@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import storesRouter from './routes/stores.router';
@@ -15,6 +16,18 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date()
 // API routes
 app.use('/api/stores', storesRouter);
 app.use('/api/products', productsRouter);
+
+// Serve static files in production
+const DIST_PATH = path.join(__dirname, '../../web/dist');
+app.use(express.static(DIST_PATH));
+
+// Catch-all for SPA (must be after API routes)
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(DIST_PATH, 'index.html'), (err) => {
+        if (err) next();
+    });
+});
 
 // 404 + error handling
 app.use(notFound);
