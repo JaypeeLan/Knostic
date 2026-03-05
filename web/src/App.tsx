@@ -4,6 +4,7 @@ import StoresPage from './pages/StoresPage';
 import StoreDetailPage from './pages/StoreDetailPage';
 import ProductsPage from './pages/ProductsPage';
 import ProductFormPage from './pages/ProductFormPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function Navbar() {
     return (
