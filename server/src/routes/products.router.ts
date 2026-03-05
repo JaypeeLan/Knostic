@@ -36,11 +36,27 @@ const ProductQuery = z.object({
  * @swagger
  * /api/products:
  *   get:
- *     summary: Get all products
+ *     summary: Get products with filtering and pagination
  *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: storeId
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: category
+ *         schema: { type: string }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
  *     responses:
  *       200:
- *         description: List of all products
+ *         description: Paginated list of products
  */
 router.get('/', validate(ProductQuery, 'query'), (req: Request, res: Response) => {
     const q = (req as any).validatedQuery;
@@ -49,11 +65,38 @@ router.get('/', validate(ProductQuery, 'query'), (req: Request, res: Response) =
 });
 
 // GET /products/categories
+/**
+ * @swagger
+ * /api/products/categories:
+ *   get:
+ *     summary: Get unique product categories
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of category strings
+ */
 router.get('/categories', (_req: Request, res: Response) => {
     res.json(productModel.getCategories());
 });
 
 // GET /products/:id
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Get a product by ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: The product object
+ *       404:
+ *         description: Product not found
+ */
 router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid product ID', 400));
@@ -65,6 +108,31 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
 });
 
 // POST /products
+/**
+ * @swagger
+ * /api/products:
+ *   post:
+ *     summary: Create a product
+ *     tags: [Products]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [store_id, name, category, price, quantity]
+ *             properties:
+ *               store_id: { type: integer }
+ *               name: { type: string }
+ *               category: { type: string }
+ *               price: { type: number }
+ *               quantity: { type: integer }
+ *               sku: { type: string }
+ *               description: { type: string }
+ *     responses:
+ *       201:
+ *         description: Product created
+ */
 router.post('/', validate(ProductBody), (req: Request, res: Response, next: NextFunction) => {
     const store = storeModel.findById(req.body.store_id);
     if (!store) return next(createError('Store not found', 404));
@@ -74,6 +142,32 @@ router.post('/', validate(ProductBody), (req: Request, res: Response, next: Next
 });
 
 // PUT /products/:id
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   put:
+ *     summary: Update a product
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               category: { type: string }
+ *               price: { type: number }
+ *               quantity: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Product updated
+ */
 router.put('/:id', validate(ProductBody.partial()), (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid product ID', 400));
@@ -90,6 +184,21 @@ router.put('/:id', validate(ProductBody.partial()), (req: Request, res: Response
 });
 
 // DELETE /products/:id
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   delete:
+ *     summary: Delete a product
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       204:
+ *         description: Product deleted
+ */
 router.delete('/:id', (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid product ID', 400));

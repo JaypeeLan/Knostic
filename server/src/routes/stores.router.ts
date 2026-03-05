@@ -23,9 +23,30 @@ const StoreBody = z.object({
  *       200:
  *         description: List of all stores
  */
-router.get('/', storesController.getAll);
+router.get('/', (_req: Request, res: Response) => {
+    const stores = storeModel.findAll();
+    res.json(stores);
+});
 
 // GET /stores/:id
+/**
+ * @swagger
+ * /api/stores/{id}:
+ *   get:
+ *     summary: Get a store by ID
+ *     tags: [Stores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: The store object
+ *       404:
+ *         description: Store not found
+ */
 router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
@@ -36,7 +57,25 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
     res.json(store);
 });
 
-// GET /stores/:id/summary  — non-trivial aggregation
+// GET /stores/:id/summary
+/**
+ * @swagger
+ * /api/stores/{id}/summary:
+ *   get:
+ *     summary: Get a store performance summary
+ *     tags: [Stores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Store summary with category breakdown
+ *       404:
+ *         description: Store not found
+ */
 router.get('/:id/summary', (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
@@ -48,12 +87,59 @@ router.get('/:id/summary', (req: Request, res: Response, next: NextFunction) => 
 });
 
 // POST /stores
+/**
+ * @swagger
+ * /api/stores:
+ *   post:
+ *     summary: Create a new store
+ *     tags: [Stores]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, location]
+ *             properties:
+ *               name: { type: string }
+ *               location: { type: string }
+ *               description: { type: string }
+ *     responses:
+ *       201:
+ *         description: Store created
+ */
 router.post('/', validate(StoreBody), (req: Request, res: Response) => {
     const store = storeModel.create(req.body);
     res.status(201).json(store);
 });
 
 // PUT /stores/:id
+/**
+ * @swagger
+ * /api/stores/{id}:
+ *   put:
+ *     summary: Update a store
+ *     tags: [Stores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               location: { type: string }
+ *               description: { type: string }
+ *     responses:
+ *       200:
+ *         description: Store updated
+ */
 router.put('/:id', validate(StoreBody.partial()), (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
@@ -65,6 +151,22 @@ router.put('/:id', validate(StoreBody.partial()), (req: Request, res: Response, 
 });
 
 // DELETE /stores/:id
+/**
+ * @swagger
+ * /api/stores/{id}:
+ *   delete:
+ *     summary: Delete a store
+ *     tags: [Stores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       244:
+ *         description: Store deleted
+ */
 router.delete('/:id', (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
