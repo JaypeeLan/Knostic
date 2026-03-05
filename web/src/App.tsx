@@ -54,6 +54,7 @@ export default function App() {
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/new" element={<ProductFormPage />} />
                 <Route path="/products/:id/edit" element={<ProductFormPage />} />
+                <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </BrowserRouter>
     );
