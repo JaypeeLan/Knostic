@@ -32,6 +32,16 @@ const ProductQuery = z.object({
 });
 
 // GET /products
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Get all products
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: List of all products
+ */
 router.get('/', validate(ProductQuery, 'query'), (req: Request, res: Response) => {
     const q = (req as any).validatedQuery;
     const result = productModel.findAll(q);

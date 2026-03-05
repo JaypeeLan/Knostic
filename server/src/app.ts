@@ -4,11 +4,16 @@ import cors from 'cors';
 import storesRouter from './routes/stores.router';
 import productsRouter from './routes/products.router';
 import { errorHandler, notFound } from './middleware/errorHandler';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));

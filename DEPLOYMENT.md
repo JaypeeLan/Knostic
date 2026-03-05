@@ -7,33 +7,16 @@ This guide is optimised for **Render's Free Tier**, which does not support persi
 
 ---
 
-## Option A: Unified Deployment (Simplest)
-*Runs the entire app in one Render service.*
-
-### 1. Create a "Web Service" on Render
-- **Language**: `Node`
-- **Root Directory**: `server`
-- **Build Command**: `cd ../web && npm install && npm run build && cd ../server && npm install && npm run build`
-- **Start Command**: `npm start`
-
-### 2. Configure Environment Variables
-- `PORT`: `3001`
-- `DB_PATH`: `:memory:` (or leave blank to use an ephemeral file)
-
-### 3. Verification
-The app will automatically seed the database on the first request. No extra steps needed!
-
----
-
-## Option B: Separate Deployment (Free Frontend)
-*Frontend as a "Static Site" and Backend as a "Web Service".*
+## Deployment Steps
 
 ### 1. Backend (Web Service)
 - **Language**: `Node`
 - **Root Directory**: `server`
 - **Build Command**: `npm install && npm run build`
 - **Start Command**: `npm start`
-- **Environment Variables**: Add `PORT=3001` and `DB_PATH=:memory:`.
+- **Environment Variables**: 
+  - `PORT`: `3001`
+  - `DB_PATH`: `:memory:` (or leave blank for an ephemeral file)
 
 ### 2. Frontend (Static Site)
 - **Language**: `Static Site`
@@ -44,13 +27,27 @@ The app will automatically seed the database on the first request. No extra step
   1. Go to **Redirects/Rewrites** in the Render dashboard.
   2. **API Access**: 
      - **Source**: `/api/*`
-     - **Destination**: `https://your-backend-url.onrender.com/api/*`
+     - **Destination**: `https://knostic-58io.onrender.com/api/*`
      - **Type**: `Rewrite`
   3. **SPA Routing (Catch-all)**: 
      - **Source**: `/*` 
      - **Destination**: `/index.html` 
      - **Type**: `Rewrite`
      *(This ensures page refreshes don't return 404).*
+
+---
+
+## Technical Note: In-Memory DB
+We use `DB_PATH=:memory:` for the fastest performance on the free tier. Since storage is wiped on restart anyway, this is the cleanest way to test.
+
+---
+
+## GitHub Push
+```bash
+git add .
+git commit -m "final deployment polish: separate services + swagger"
+git push origin main
+```
 
 ---
 

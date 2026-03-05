@@ -123,7 +123,7 @@ export default function ProductFormPage() {
 
             {apiError && <div className="error-banner" style={{ marginBottom: '1.5rem' }}><AlertCircle size={18} /> {apiError}</div>}
 
-            <div className="card" style={{ maxWidth: 720 }}>
+            <div className="card">
                 <form onSubmit={handleSubmit}>
                     <div className="product-form-grid">
 

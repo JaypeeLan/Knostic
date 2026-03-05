@@ -13,10 +13,17 @@ const StoreBody = z.object({
 });
 
 // GET /stores
-router.get('/', (_req: Request, res: Response) => {
-    const stores = storeModel.findAll();
-    res.json(stores);
-});
+/**
+ * @swagger
+ * /api/stores:
+ *   get:
+ *     summary: Get all stores
+ *     tags: [Stores]
+ *     responses:
+ *       200:
+ *         description: List of all stores
+ */
+router.get('/', storesController.getAll);
 
 // GET /stores/:id
 router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
