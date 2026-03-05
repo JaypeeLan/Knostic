@@ -1,17 +1,17 @@
 # Deployment Guide — Knostic (Render Edition)
 
-This guide outlines how to deploy Knostic using **Render** for both the frontend and backend. 
+This guide outlines how to deploy Knostic using **Render**.
 
 ---
 
 ## Option A: Unified Deployment (Simplest)
-This runs the entire app in one Render service.
+*Runs both frontend and backend in a single Render Web Service.*
 
 ### 1. Create a "Web Service" on Render
-1. Connect your GitHub repository.
-2. Set **Root Directory**: `server`
-3. **Build Command**: `cd ../web && npm install && npm run build && cd ../server && npm install && npm run build`
-4. **Start Command**: `npm start`
+- **Language**: `Node`
+- **Root Directory**: `server`
+- **Build Command**: `cd ../web && npm install && npm run build && cd ../server && npm install && npm run build`
+- **Start Command**: `npm start`
 
 ### 2. Configure Environment Variables
 - `PORT` = `3001`
@@ -19,27 +19,38 @@ This runs the entire app in one Render service.
 
 ### 3. Add a Persistent Disk
 - **Mount Path**: `/opt/render/project/data`
-- **Size**: 1GB
+- **Size**: 1GB (This ensures your SQLite data persists).
 
 ---
 
-## Option B: Separate Deployment (Better Performance)
-Frontend as a "Static Site" and Backend as a "Web Service".
+## Option B: Separate Deployment (Free Frontend)
+*Frontend as a "Static Site" and Backend as a "Web Service".*
 
 ### 1. Backend (Web Service)
-- Follow the steps in **Option A**, but use only `npm install && npm run build` as the build command in the `server` directory.
-- Note your backend URL (e.g., `https://knostic-api.onrender.com`).
+- **Language**: `Node`
+- **Root Directory**: `server`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Environment Variables**: Add `DB_PATH` and `PORT` as in Option A.
+- **Disk**: Add a Persistent Disk as in Option A.
 
 ### 2. Frontend (Static Site)
-1. Create a new **Static Site** on Render.
-2. Set **Root Directory**: `web`
-3. **Build Command**: `npm install && npm run build`
-4. **Publish Directory**: `dist`
-5. **Rewrites/Redirects** (IMPORTANT):
-   - In Render dashboard, go to **Redirects/Rewrites**.
-   - **Source**: `/api/*`
-   - **Destination**: `https://your-backend-url.onrender.com/api/*`
-   - **Type**: `Rewrite`
+- **Language**: `Static Site` (Render auto-detects)
+- **Root Directory**: `web`
+- **Build Command**: `npm install && npm run build`
+- **Publish Directory**: `dist`
+- **Rewrites/Redirects**:
+  1. Go to **Redirects/Rewrites** in the Render dashboard.
+  2. Add: **Source**: `/api/*` | **Destination**: `https://your-backend-url.onrender.com/api/*` | **Type**: `Rewrite`.
+
+---
+
+## POST-DEPLOYMENT: Seeding the Database
+Once the backend is live, open the Render **Shell** and run:
+```bash
+cd server && npm run seed
+```
+This will populate your remote database with initial data.
 
 ---
 
