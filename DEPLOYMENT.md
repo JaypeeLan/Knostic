@@ -1,11 +1,14 @@
-# Deployment Guide — Knostic (Render Edition)
+# Deployment Guide — Knostic (Render Free Tier)
 
-This guide outlines how to deploy Knostic using **Render**.
+This guide is optimised for **Render's Free Tier**, which does not support persistent disks. 
+
+> [!NOTE]
+> On the Free Tier, your data is **ephemeral**. This means any changes you make (adding products/stores) will be reset whenever the server restarts (at least once a day or on every redeploy). The server will automatically re-seed the default data on every restart.
 
 ---
 
 ## Option A: Unified Deployment (Simplest)
-*Runs both frontend and backend in a single Render Web Service.*
+*Runs the entire app in one Render service.*
 
 ### 1. Create a "Web Service" on Render
 - **Language**: `Node`
@@ -14,12 +17,11 @@ This guide outlines how to deploy Knostic using **Render**.
 - **Start Command**: `npm start`
 
 ### 2. Configure Environment Variables
-- `PORT` = `3001`
-- `DB_PATH` = `/opt/render/project/data/inventory.db`
+- `PORT`: `3001`
+- `DB_PATH`: `:memory:` (or leave blank to use an ephemeral file)
 
-### 3. Add a Persistent Disk
-- **Mount Path**: `/opt/render/project/data`
-- **Size**: 1GB (This ensures your SQLite data persists).
+### 3. Verification
+The app will automatically seed the database on the first request. No extra steps needed!
 
 ---
 
@@ -31,11 +33,10 @@ This guide outlines how to deploy Knostic using **Render**.
 - **Root Directory**: `server`
 - **Build Command**: `npm install && npm run build`
 - **Start Command**: `npm start`
-- **Environment Variables**: Add `DB_PATH` and `PORT` as in Option A.
-- **Disk**: Add a Persistent Disk as in Option A.
+- **Environment Variables**: Add `PORT=3001` and `DB_PATH=:memory:`.
 
 ### 2. Frontend (Static Site)
-- **Language**: `Static Site` (Render auto-detects)
+- **Language**: `Static Site`
 - **Root Directory**: `web`
 - **Build Command**: `npm install && npm run build`
 - **Publish Directory**: `dist`
@@ -45,16 +46,12 @@ This guide outlines how to deploy Knostic using **Render**.
 
 ---
 
-## POST-DEPLOYMENT: Seeding the Database
-Once the backend is live, open the Render **Shell** and run:
-```bash
-cd server && npm run seed
-```
-This will populate your remote database with initial data.
+## Technical Note: In-Memory DB
+We use `DB_PATH=:memory:` for the fastest performance on the free tier. Since storage is wiped on restart anyway, this is the cleanest way to test.
 
 ---
 
-## 3. GitHub Push Tasks
+## GitHub Push
 ```bash
 git add .
 git commit -m "update deployment for Render-only setup"

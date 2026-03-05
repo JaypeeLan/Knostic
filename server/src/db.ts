@@ -4,10 +4,12 @@ import fs from 'fs';
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'inventory.db');
 
-// Ensure data directory exists
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Ensure data directory exists (skipped if in-memory)
+if (DB_PATH !== ':memory:') {
+  const dataDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
 const db: BetterDatabase = new Database(DB_PATH);

@@ -1,4 +1,7 @@
-import './db'; // Ensure DB and schema are initialised before server starts
+import './db';
+import { seedDatabase } from './seed';
+seedDatabase(); // Automatically seed if database is empty
+
 import app from './app';
 
 const PORT = Number(process.env.PORT) || 3001;
