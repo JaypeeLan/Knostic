@@ -42,7 +42,15 @@ The app will automatically seed the database on the first request. No extra step
 - **Publish Directory**: `dist`
 - **Rewrites/Redirects**:
   1. Go to **Redirects/Rewrites** in the Render dashboard.
-  2. Add: **Source**: `/api/*` | **Destination**: `https://your-backend-url.onrender.com/api/*` | **Type**: `Rewrite`.
+  2. **API Access**: 
+     - **Source**: `/api/*`
+     - **Destination**: `https://your-backend-url.onrender.com/api/*`
+     - **Type**: `Rewrite`
+  3. **SPA Routing (Catch-all)**: 
+     - **Source**: `/*` 
+     - **Destination**: `/index.html` 
+     - **Type**: `Rewrite`
+     *(This ensures page refreshes don't return 404).*
 
 ---
 
