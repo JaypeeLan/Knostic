@@ -5,8 +5,9 @@ export function validate(schema: ZodSchema, source: 'body' | 'query' = 'body') {
     return (req: Request, res: Response, next: NextFunction) => {
         const result = schema.safeParse(source === 'body' ? req.body : req.query);
         if (!result.success) {
+            const skuIssue = result.error.issues.find(issue => issue.path[0] === 'sku');
             res.status(400).json({
-                error: 'Validation failed',
+                error: skuIssue?.message ?? 'Validation failed',
                 details: result.error.flatten().fieldErrors,
             });
             return;

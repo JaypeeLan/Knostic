@@ -7,13 +7,15 @@ import { createError } from '../middleware/errorHandler';
 
 const router = Router();
 
+const SKU_PATTERN = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+
 const ProductBody = z.object({
     store_id: z.number().int().positive(),
     name: z.string().min(1).max(200),
     category: z.string().min(1).max(100),
     price: z.number().min(0),
     quantity: z.number().int().min(0),
-    sku: z.string().max(100).optional(),
+    sku: z.string().max(100).regex(SKU_PATTERN, 'Invalid SKU number').optional(),
     description: z.string().max(1000).optional(),
 });
 

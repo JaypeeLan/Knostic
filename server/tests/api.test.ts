@@ -85,6 +85,24 @@ describe('Products API', () => {
         productId = res.body.id;
     });
 
+    it('POST /api/products — rejects duplicate SKU', async () => {
+        const res = await request.post('/api/products').send({
+            store_id: store1Id, name: 'Wireless Keyboard 2',
+            category: 'Electronics', price: 89.99, quantity: 20, sku: 'EL-WKB-01',
+        });
+        assert.equal(res.status, 409);
+        assert.equal(res.body.error, 'Duplicate SKU number');
+    });
+
+    it('POST /api/products — rejects invalid SKU', async () => {
+        const res = await request.post('/api/products').send({
+            store_id: store1Id, name: 'Invalid SKU Item',
+            category: 'Electronics', price: 19.99, quantity: 5, sku: 'EL#BAD',
+        });
+        assert.equal(res.status, 400);
+        assert.equal(res.body.error, 'Invalid SKU number');
+    });
+
     it('POST /api/products — rejects negative price', async () => {
         const res = await request.post('/api/products').send({
             store_id: store1Id, name: 'Bad', category: 'Misc', price: -5, quantity: 10,
