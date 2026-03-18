@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, AlertCircle, Store, MapPin, Trash2, Plus, X } from 'lucide-react';
 import { storesApi } from '../api/stores';
 import type { Store as StoreType } from '../types';
+import Modal from '../components/Modal';
 
 export default function StoresPage() {
     const [stores, setStores] = useState<StoreType[]>([]);
@@ -13,6 +14,11 @@ export default function StoresPage() {
     const [form, setForm] = useState({ name: '', location: '', description: '' });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
+
+    // Modal state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [storeToDelete, setStoreToDelete] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const load = () => {
         setLoading(true);
@@ -54,13 +60,24 @@ export default function StoresPage() {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Delete this store and all its products?')) return;
+    const handleDeleteClick = (id: number) => {
+        setStoreToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!storeToDelete) return;
+        setIsDeleting(true);
         try {
-            await storesApi.delete(id);
+            await storesApi.delete(storeToDelete);
+            setIsDeleteModalOpen(false);
+            setStoreToDelete(null);
             load();
         } catch (e: any) {
             setError(e.message);
+            setIsDeleteModalOpen(false);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -160,14 +177,14 @@ export default function StoresPage() {
                                             {store.description}
                                         </p>
                                     )}
-                                    <div className="store-meta">
+                                    <div className="store-meta" style={{ marginTop: 'auto' }}>
                                         <span className="badge badge-accent">View Products</span>
                                     </div>
                                 </div>
                             </Link>
                             <button
                                 className="btn btn-ghost btn-sm btn-danger"
-                                onClick={() => handleDelete(store.id)}
+                                onClick={() => handleDeleteClick(store.id)}
                                 style={{ position: 'absolute', top: '1rem', right: '1rem' }}
                                 title="Delete store"
                             >
@@ -177,6 +194,18 @@ export default function StoresPage() {
                     ))}
                 </div>
             )}
+
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Delete Store"
+                confirmLabel="Delete Store"
+                onConfirm={handleConfirmDelete}
+                confirmVariant="danger"
+                isSubmitting={isDeleting}
+            >
+                <p>Are you sure you want to delete this store? This action will also delete all associated products and cannot be undone.</p>
+            </Modal>
         </main>
     );
 }

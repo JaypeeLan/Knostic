@@ -1,9 +1,9 @@
-import db from '../db';
+import db from '../db/index';
 import type { Store, CategoryBreakdown, StoreSummary } from '../types';
 
 // ── Store queries ─────────────────────────────────────────────────────────────
 
-export const storeModel = {
+export const storeRepository = {
   findAll(): Store[] {
     return db.prepare('SELECT * FROM stores ORDER BY name ASC').all() as Store[];
   },
@@ -12,7 +12,7 @@ export const storeModel = {
     return db.prepare('SELECT * FROM stores WHERE id = ?').get(id) as Store | undefined;
   },
 
-  create(data: { name: string; location: string; description?: string }): Store {
+  create(data: { name: string; location: string; description?: string | null }): Store {
     const stmt = db.prepare(`
       INSERT INTO stores (name, location, description)
       VALUES (@name, @location, @description)
@@ -21,7 +21,7 @@ export const storeModel = {
     return this.findById(result.lastInsertRowid as number)!;
   },
 
-  update(id: number, data: { name?: string; location?: string; description?: string }): Store | undefined {
+  update(id: number, data: { name?: string; location?: string; description?: string | null }): Store | undefined {
     const existing = this.findById(id);
     if (!existing) return undefined;
 

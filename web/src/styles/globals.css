@@ -136,6 +136,8 @@ a:hover {
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: border-color var(--transition), box-shadow var(--transition);
+  display: flex;
+  flex-direction: column;
 }
 
 .card:hover {
@@ -527,16 +529,19 @@ tbody td:first-child {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.25rem;
+  align-items: stretch;
 }
 
 /* ── Store card link ── */
 .store-card-link {
   text-decoration: none;
   display: block;
+  height: 100%;
 }
 
 .store-card {
   cursor: pointer;
+  height: 100%;
 }
 
 .store-card .store-name {
@@ -620,4 +625,63 @@ tbody td:first-child {
 
 .search-wrap .form-input {
   padding-left: 2.25rem;
+}
+
+/* ── Modal ── */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-1);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.modal-body {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

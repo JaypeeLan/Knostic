@@ -4,6 +4,7 @@ import { Search, AlertCircle, Package, Pencil, Trash2, RotateCcw, ChevronLeft, C
 import { productsApi } from '../api/products';
 import { storesApi } from '../api/stores';
 import type { Product, PaginatedResult, Store } from '../types';
+import Modal from '../components/Modal';
 
 function fmt(n: number) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -37,6 +38,11 @@ export default function ProductsPage() {
     const [order, setOrder] = useState('desc');
     const [page, setPage] = useState(1);
 
+    // Modal state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const load = useCallback(() => {
         setLoading(true);
         setError(null);
@@ -65,13 +71,24 @@ export default function ProductsPage() {
             .then(([s, c]) => { setStores(s); setCategories(c); });
     }, []);
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Delete this product?')) return;
+    const handleDeleteClick = (id: number) => {
+        setProductToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!productToDelete) return;
+        setIsDeleting(true);
         try {
-            await productsApi.delete(id);
+            await productsApi.delete(productToDelete);
+            setIsDeleteModalOpen(false);
+            setProductToDelete(null);
             load();
         } catch (e: any) {
             setError(e.message);
+            setIsDeleteModalOpen(false);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -214,7 +231,7 @@ export default function ProductsPage() {
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                                                         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/products/${p.id}/edit`)}><Pencil size={14} /></button>
-                                                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
+                                                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteClick(p.id)}><Trash2 size={14} /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -254,6 +271,18 @@ export default function ProductsPage() {
                     )}
                 </div>
             </div>
+
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Delete Product"
+                confirmLabel="Delete Product"
+                onConfirm={handleConfirmDelete}
+                confirmVariant="danger"
+                isSubmitting={isDeleting}
+            >
+                <p>Are you sure you want to delete this product? This action cannot be undone.</p>
+            </Modal>
         </main>
     );
 }

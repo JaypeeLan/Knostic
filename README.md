@@ -45,7 +45,15 @@ cd server && npm test
 
 23 integration tests covering stores CRUD, products CRUD, filtering, pagination, sorting, the aggregation endpoint, validation errors, and FK cascade delete. Tests run against a real in-memory SQLite database.
 
-**Test runner:** Node.js native `node:test` (built into Node 18+) executed via `tsx`. Vitest was initially chosen but had an incompatibility between Vite's module transformer and `better-sqlite3`'s native bindings under Node 24 — the native test runner avoids this entirely and has no external test framework dependency.
+**Server Test runner:** Node.js native `node:test` (built into Node 18+) executed via `tsx`. This avoids any dependency conflicts with native bindings.
+
+### Frontend Tests (Web)
+
+```bash
+cd web && npm test
+```
+
+Frontend unit and component tests are powered by **Vitest** and **React Testing Library**. Versioning issues between Vite and Vitest have been resolved (Vite 7+), allowing for a seamless testing experience in the frontend.
 
 ---
 

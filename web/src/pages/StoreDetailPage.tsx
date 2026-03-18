@@ -4,6 +4,7 @@ import { MapPin, Package, AlertCircle, Pencil, Trash2, ArrowLeft, Plus } from 'l
 import { storesApi } from '../api/stores';
 import { productsApi } from '../api/products';
 import type { StoreSummary, Product } from '../types';
+import Modal from '../components/Modal';
 
 function fmt(n: number) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -23,6 +24,11 @@ export default function StoreDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Modal state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const load = () => {
         if (!id) return;
         setLoading(true);
@@ -41,13 +47,24 @@ export default function StoreDetailPage() {
 
     useEffect(() => { load(); }, [id]);
 
-    const handleDeleteProduct = async (productId: number) => {
-        if (!confirm('Delete this product?')) return;
+    const handleDeleteClick = (productId: number) => {
+        setProductToDelete(productId);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!productToDelete) return;
+        setIsDeleting(true);
         try {
-            await productsApi.delete(productId);
+            await productsApi.delete(productToDelete);
+            setIsDeleteModalOpen(false);
+            setProductToDelete(null);
             load();
         } catch (e: any) {
             setError(e.message);
+            setIsDeleteModalOpen(false);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -159,7 +176,7 @@ export default function StoreDetailPage() {
                                                 ><Pencil size={14} /></button>
                                                 <button
                                                     className="btn btn-danger btn-sm"
-                                                    onClick={() => handleDeleteProduct(p.id)}
+                                                    onClick={() => handleDeleteClick(p.id)}
                                                 ><Trash2 size={14} /></button>
                                             </div>
                                         </td>
@@ -170,6 +187,18 @@ export default function StoreDetailPage() {
                     </div>
                 )}
             </div>
+
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Delete Product"
+                confirmLabel="Delete Product"
+                onConfirm={handleConfirmDelete}
+                confirmVariant="danger"
+                isSubmitting={isDeleting}
+            >
+                <p>Are you sure you want to delete this product? This action cannot be undone.</p>
+            </Modal>
         </main>
     );
 }

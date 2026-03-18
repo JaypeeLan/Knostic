@@ -1,10 +1,10 @@
-import db from '../db';
+import db from '../db/index';
 import type { Product, ProductFilters, PaginatedResult } from '../types';
 
 const ALLOWED_SORT = ['name', 'price', 'quantity', 'created_at'] as const;
 const ALLOWED_ORDER = ['asc', 'desc'] as const;
 
-export const productModel = {
+export const productRepository = {
     findAll(filters: ProductFilters = {}): PaginatedResult<Product> {
         const {
             storeId,
@@ -71,7 +71,7 @@ export const productModel = {
 
     create(data: {
         store_id: number; name: string; category: string;
-        price: number; quantity: number; sku?: string; description?: string;
+        price: number; quantity: number; sku?: string | null; description?: string | null;
     }): Product {
         const stmt = db.prepare(`
       INSERT INTO products (store_id, name, category, price, quantity, sku, description)

@@ -1,39 +1,41 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import { storeModel } from '../models/store.model';
+import { Router } from 'express';
+import { storeController } from '../controllers/store.controller';
 import { validate } from '../middleware/validate';
-import { createError } from '../middleware/errorHandler';
+import { StoreSchema, UpdateStoreSchema } from '../validations/store.validation';
+import { IdParamSchema } from '../validations/common.validation';
 
 const router = Router();
 
-const StoreBody = z.object({
-    name: z.string().min(1).max(100),
-    location: z.string().min(1).max(200),
-    description: z.string().max(500).optional(),
-});
+/**
+ * @swagger
+ * tags:
+ *   name: Stores
+ *   description: Store management API
+ */
 
-// GET /stores
 /**
  * @swagger
  * /api/stores:
  *   get:
- *     summary: Get all stores
+ *     summary: Retrieve a list of all stores
  *     tags: [Stores]
  *     responses:
  *       200:
- *         description: List of all stores
+ *         description: A list of stores.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Store'
  */
-router.get('/', (_req: Request, res: Response) => {
-    const stores = storeModel.findAll();
-    res.json(stores);
-});
+router.get('/', storeController.getAll);
 
-// GET /stores/:id
 /**
  * @swagger
  * /api/stores/{id}:
  *   get:
- *     summary: Get a store by ID
+ *     summary: Get a store by its ID
  *     tags: [Stores]
  *     parameters:
  *       - in: path
@@ -41,28 +43,24 @@ router.get('/', (_req: Request, res: Response) => {
  *         required: true
  *         schema:
  *           type: integer
+ *         description: The store ID
  *     responses:
  *       200:
- *         description: The store object
+ *         description: Detailed store information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Store'
  *       404:
  *         description: Store not found
  */
-router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
+router.get('/:id', validate({ params: IdParamSchema }), storeController.getById);
 
-    const store = storeModel.findById(id);
-    if (!store) return next(createError('Store not found', 404));
-
-    res.json(store);
-});
-
-// GET /stores/:id/summary
 /**
  * @swagger
  * /api/stores/{id}/summary:
  *   get:
- *     summary: Get a store performance summary
+ *     summary: Get inventory summary for a store
  *     tags: [Stores]
  *     parameters:
  *       - in: path
@@ -72,21 +70,16 @@ router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: Store summary with category breakdown
+ *         description: Inventory summary and category breakdown
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StoreSummary'
  *       404:
  *         description: Store not found
  */
-router.get('/:id/summary', (req: Request, res: Response, next: NextFunction) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
+router.get('/:id/summary', validate({ params: IdParamSchema }), storeController.getSummary);
 
-    const summary = storeModel.getSummary(id);
-    if (!summary) return next(createError('Store not found', 404));
-
-    res.json(summary);
-});
-
-// POST /stores
 /**
  * @swagger
  * /api/stores:
@@ -98,27 +91,22 @@ router.get('/:id/summary', (req: Request, res: Response, next: NextFunction) => 
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [name, location]
- *             properties:
- *               name: { type: string }
- *               location: { type: string }
- *               description: { type: string }
+ *             $ref: '#/components/schemas/Store'
  *     responses:
- *       201:
- *         description: Store created
+ *       214:
+ *         description: Store created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Store'
  */
-router.post('/', validate(StoreBody), (req: Request, res: Response) => {
-    const store = storeModel.create(req.body);
-    res.status(201).json(store);
-});
+router.post('/', validate({ body: StoreSchema }), storeController.create);
 
-// PUT /stores/:id
 /**
  * @swagger
  * /api/stores/{id}:
  *   put:
- *     summary: Update a store
+ *     summary: Update an existing store
  *     tags: [Stores]
  *     parameters:
  *       - in: path
@@ -131,31 +119,20 @@ router.post('/', validate(StoreBody), (req: Request, res: Response) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name: { type: string }
- *               location: { type: string }
- *               description: { type: string }
+ *             $ref: '#/components/schemas/Store'
  *     responses:
  *       200:
- *         description: Store updated
+ *         description: Store updated successfully
+ *       404:
+ *         description: Store not found
  */
-router.put('/:id', validate(StoreBody.partial()), (req: Request, res: Response, next: NextFunction) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
+router.put('/:id', validate({ params: IdParamSchema, body: UpdateStoreSchema }), storeController.update);
 
-    const updated = storeModel.update(id, req.body);
-    if (!updated) return next(createError('Store not found', 404));
-
-    res.json(updated);
-});
-
-// DELETE /stores/:id
 /**
  * @swagger
  * /api/stores/{id}:
  *   delete:
- *     summary: Delete a store
+ *     summary: Delete a store and its products
  *     tags: [Stores]
  *     parameters:
  *       - in: path
@@ -164,17 +141,11 @@ router.put('/:id', validate(StoreBody.partial()), (req: Request, res: Response, 
  *         schema:
  *           type: integer
  *     responses:
- *       244:
- *         description: Store deleted
+ *       204:
+ *         description: Store deleted successfully
+ *       404:
+ *         description: Store not found
  */
-router.delete('/:id', (req: Request, res: Response, next: NextFunction) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return next(createError('Invalid store ID', 400));
-
-    const deleted = storeModel.delete(id);
-    if (!deleted) return next(createError('Store not found', 404));
-
-    res.status(204).send();
-});
+router.delete('/:id', validate({ params: IdParamSchema }), storeController.delete);
 
 export default router;
