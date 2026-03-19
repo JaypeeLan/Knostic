@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, Package, AlertCircle, Pencil, Trash2, ArrowLeft, Plus } from 'lucide-react';
-import { storesApi } from '../api/stores';
-import { productsApi } from '../api/products';
-import type { StoreSummary, Product } from '../types';
 import Modal from '../components/Modal';
+import { useStoreDetail } from '../hooks/useStoreDetail';
 
 function fmt(n: number) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -19,52 +17,32 @@ function StockBadge({ quantity }: { quantity: number }) {
 export default function StoreDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [summary, setSummary] = useState<StoreSummary | null>(null);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        summary,
+        products,
+        loading,
+        error,
+        deleteProduct,
+    } = useStoreDetail(id);
 
-    // Modal state
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [productToDelete, setProductToDelete] = useState<number | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    const load = () => {
-        if (!id) return;
-        setLoading(true);
-        setError(null);
-        Promise.all([
-            storesApi.getSummary(Number(id)),
-            productsApi.getAll({ storeId: Number(id), limit: 100 }),
-        ])
-            .then(([sum, prods]) => {
-                setSummary(sum);
-                setProducts(prods.data);
-            })
-            .catch(e => setError(e.message))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { load(); }, [id]);
+    const [modalState, setModalState] = useState({
+        isOpen: false,
+        productId: null as number | null,
+        isDeleting: false,
+    });
 
     const handleDeleteClick = (productId: number) => {
-        setProductToDelete(productId);
-        setIsDeleteModalOpen(true);
+        setModalState({ isOpen: true, productId, isDeleting: false });
     };
 
     const handleConfirmDelete = async () => {
-        if (!productToDelete) return;
-        setIsDeleting(true);
+        if (!modalState.productId) return;
+        setModalState(s => ({ ...s, isDeleting: true }));
         try {
-            await productsApi.delete(productToDelete);
-            setIsDeleteModalOpen(false);
-            setProductToDelete(null);
-            load();
+            await deleteProduct(modalState.productId);
+            setModalState({ isOpen: false, productId: null, isDeleting: false });
         } catch (e: any) {
-            setError(e.message);
-            setIsDeleteModalOpen(false);
-        } finally {
-            setIsDeleting(false);
+            setModalState(s => ({ ...s, isDeleting: false, isOpen: false }));
         }
     };
 
@@ -122,7 +100,7 @@ export default function StoreDetailPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {summary.categories.map(cat => (
+                                {summary.categories.map((cat: any) => (
                                     <tr key={cat.category}>
                                         <td><span className="badge badge-accent">{cat.category}</span></td>
                                         <td>{cat.product_count}</td>
@@ -160,7 +138,7 @@ export default function StoreDetailPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {products.map(p => (
+                                {products.map((p: any) => (
                                     <tr key={p.id}>
                                         <td>{p.name}</td>
                                         <td><span className="badge badge-neutral">{p.category}</span></td>
@@ -189,13 +167,13 @@ export default function StoreDetailPage() {
             </div>
 
             <Modal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
+                isOpen={modalState.isOpen}
+                onClose={() => setModalState(s => ({ ...s, isOpen: false }))}
                 title="Delete Product"
                 confirmLabel="Delete Product"
                 onConfirm={handleConfirmDelete}
                 confirmVariant="danger"
-                isSubmitting={isDeleting}
+                isSubmitting={modalState.isDeleting}
             >
                 <p>Are you sure you want to delete this product? This action cannot be undone.</p>
             </Modal>

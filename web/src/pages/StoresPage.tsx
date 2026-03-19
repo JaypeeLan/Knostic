@@ -1,35 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, AlertCircle, Store, MapPin, Trash2, Plus, X } from 'lucide-react';
-import { storesApi } from '../api/stores';
 import type { Store as StoreType } from '../types';
 import Modal from '../components/Modal';
+import { useStores } from '../hooks/useStores';
 
 export default function StoresPage() {
-    const [stores, setStores] = useState<StoreType[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        stores,
+        loading,
+        error,
+        createStore,
+        deleteStore,
+    } = useStores();
+
     const [search, setSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
-    const [form, setForm] = useState({ name: '', location: '', description: '' });
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [submitting, setSubmitting] = useState(false);
+    const [formState, setFormState] = useState({
+        data: { name: '', location: '', description: '' },
+        errors: {} as Record<string, string>,
+        submitting: false,
+    });
 
     // Modal state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [storeToDelete, setStoreToDelete] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-
-    const load = () => {
-        setLoading(true);
-        setError(null);
-        storesApi.getAll()
-            .then(setStores)
-            .catch(e => setError(e.message))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { load(); }, []);
 
     const filtered = stores.filter(s =>
         s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,25 +34,31 @@ export default function StoresPage() {
 
     const validateForm = () => {
         const errs: Record<string, string> = {};
-        if (!form.name.trim()) errs.name = 'Name is required';
-        if (!form.location.trim()) errs.location = 'Location is required';
+        if (!formState.data.name.trim()) errs.name = 'Name is required';
+        if (!formState.data.location.trim()) errs.location = 'Location is required';
         return errs;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const errs = validateForm();
-        if (Object.keys(errs).length) { setFormErrors(errs); return; }
-        setSubmitting(true);
+        if (Object.keys(errs).length) {
+            setFormState(f => ({ ...f, errors: errs }));
+            return;
+        }
+
+        setFormState(f => ({ ...f, submitting: true }));
         try {
-            await storesApi.create(form);
-            setForm({ name: '', location: '', description: '' });
+            await createStore(formState.data);
+            setFormState({
+                data: { name: '', location: '', description: '' },
+                errors: {},
+                submitting: false,
+            });
             setShowForm(false);
-            load();
         } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setSubmitting(false);
+            // Error is handled in hook or through global error
+            setFormState(f => ({ ...f, submitting: false }));
         }
     };
 
@@ -69,12 +71,10 @@ export default function StoresPage() {
         if (!storeToDelete) return;
         setIsDeleting(true);
         try {
-            await storesApi.delete(storeToDelete);
+            await deleteStore(storeToDelete);
             setIsDeleteModalOpen(false);
             setStoreToDelete(null);
-            load();
         } catch (e: any) {
-            setError(e.message);
             setIsDeleteModalOpen(false);
         } finally {
             setIsDeleting(false);
@@ -107,37 +107,52 @@ export default function StoresPage() {
                             <div className="form-group">
                                 <label className="form-label">Store Name *</label>
                                 <input
-                                    className={`form-input ${formErrors.name ? 'input-error' : ''}`}
-                                    value={form.name}
-                                    onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErrors(f => ({ ...f, name: '' })); }}
+                                    className={`form-input ${formState.errors.name ? 'input-error' : ''}`}
+                                    value={formState.data.name}
+                                    onChange={e => {
+                                        setFormState(f => ({
+                                            ...f,
+                                            data: { ...f.data, name: e.target.value },
+                                            errors: { ...f.errors, name: '' }
+                                        }));
+                                    }}
                                     placeholder="e.g. Downtown Flagship"
                                 />
-                                {formErrors.name && <span className="form-error">{formErrors.name}</span>}
+                                {formState.errors.name && <span className="form-error">{formState.errors.name}</span>}
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Location *</label>
                                 <input
-                                    className={`form-input ${formErrors.location ? 'input-error' : ''}`}
-                                    value={form.location}
-                                    onChange={e => { setForm(f => ({ ...f, location: e.target.value })); setFormErrors(f => ({ ...f, location: '' })); }}
+                                    className={`form-input ${formState.errors.location ? 'input-error' : ''}`}
+                                    value={formState.data.location}
+                                    onChange={e => {
+                                        setFormState(f => ({
+                                            ...f,
+                                            data: { ...f.data, location: e.target.value },
+                                            errors: { ...f.errors, location: '' }
+                                        }));
+                                    }}
                                     placeholder="e.g. New York, NY"
                                 />
-                                {formErrors.location && <span className="form-error">{formErrors.location}</span>}
+                                {formState.errors.location && <span className="form-error">{formState.errors.location}</span>}
                             </div>
                             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                 <label className="form-label">Description</label>
                                 <textarea
                                     className="form-textarea"
-                                    value={form.description}
-                                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                                    value={formState.data.description}
+                                    onChange={e => setFormState(f => ({
+                                        ...f,
+                                        data: { ...f.data, description: e.target.value }
+                                    }))}
                                     placeholder="Optional store description"
                                 />
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
                             <button type="button" className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
-                            <button type="submit" className="btn btn-primary" disabled={submitting}>
-                                {submitting ? 'Creating…' : 'Create Store'}
+                            <button type="submit" className="btn btn-primary" disabled={formState.submitting}>
+                                {formState.submitting ? 'Creating…' : 'Create Store'}
                             </button>
                         </div>
                     </form>
@@ -166,7 +181,7 @@ export default function StoresPage() {
                 </div>
             ) : (
                 <div className="stores-grid">
-                    {filtered.map(store => (
+                    {filtered.map((store: StoreType) => (
                         <div key={store.id} style={{ position: 'relative' }}>
                             <Link to={`/stores/${store.id}`} className="store-card-link">
                                 <div className="card store-card">

@@ -5,7 +5,8 @@
             "node"
         ],
         "noUnusedLocals": false,
-        "noUnusedParameters": false
+        "noUnusedParameters": false,
+        "rootDir": "."
     },
     "include": [
         "src/**/*",

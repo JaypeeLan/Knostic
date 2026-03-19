@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, AlertCircle, Package, Pencil, Trash2, RotateCcw, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { productsApi } from '../api/products';
-import { storesApi } from '../api/stores';
-import type { Product, PaginatedResult, Store } from '../types';
+import type { Store } from '../types';
 import Modal from '../components/Modal';
+import { useProducts } from '../hooks/useProducts';
 
 function fmt(n: number) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
@@ -16,60 +15,24 @@ function StockBadge({ quantity }: { quantity: number }) {
     return <span className="badge badge-success">{quantity}</span>;
 }
 
-const LIMIT = 15;
-
 export default function ProductsPage() {
     const navigate = useNavigate();
-    const [result, setResult] = useState<PaginatedResult<Product> | null>(null);
-    const [stores, setStores] = useState<Store[]>([]);
-    const [categories, setCategories] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        products,
+        pagination,
+        stores,
+        categories,
+        loading,
+        error,
+        filters,
+        updateFilter,
+        resetFilters,
+        deleteProduct,
+    } = useProducts();
 
-    // Filters
-    const [search, setSearch] = useState('');
-    const [storeId, setStoreId] = useState('');
-    const [category, setCategory] = useState('');
-    const [minPrice, setMinPrice] = useState('');
-    const [maxPrice, setMaxPrice] = useState('');
-    const [minStock, setMinStock] = useState('');
-    const [maxStock, setMaxStock] = useState('');
-    const [sort, setSort] = useState('created_at');
-    const [order, setOrder] = useState('desc');
-    const [page, setPage] = useState(1);
-
-    // Modal state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-
-    const load = useCallback(() => {
-        setLoading(true);
-        setError(null);
-        productsApi.getAll({
-            search: search || undefined,
-            storeId: storeId ? Number(storeId) : undefined,
-            category: category || undefined,
-            minPrice: minPrice || undefined,
-            maxPrice: maxPrice || undefined,
-            minStock: minStock || undefined,
-            maxStock: maxStock || undefined,
-            sort,
-            order,
-            page,
-            limit: LIMIT,
-        })
-            .then(setResult)
-            .catch(e => setError(e.message))
-            .finally(() => setLoading(false));
-    }, [search, storeId, category, minPrice, maxPrice, minStock, maxStock, sort, order, page]);
-
-    useEffect(() => { load(); }, [load]);
-
-    useEffect(() => {
-        Promise.all([storesApi.getAll(), productsApi.getCategories()])
-            .then(([s, c]) => { setStores(s); setCategories(c); });
-    }, []);
 
     const handleDeleteClick = (id: number) => {
         setProductToDelete(id);
@@ -80,27 +43,18 @@ export default function ProductsPage() {
         if (!productToDelete) return;
         setIsDeleting(true);
         try {
-            await productsApi.delete(productToDelete);
+            await deleteProduct(productToDelete);
             setIsDeleteModalOpen(false);
             setProductToDelete(null);
-            load();
-        } catch (e: any) {
-            setError(e.message);
+        } catch (error) {
+            // Error is handled in hook
             setIsDeleteModalOpen(false);
         } finally {
             setIsDeleting(false);
         }
     };
 
-    const resetFilters = () => {
-        setSearch(''); setStoreId(''); setCategory('');
-        setMinPrice(''); setMaxPrice(''); setMinStock(''); setMaxStock('');
-        setSort('created_at'); setOrder('desc'); setPage(1);
-    };
-
-    const { data: products = [], pagination } = result ?? {};
-
-    const storeMap = Object.fromEntries(stores.map(s => [s.id, s.name]));
+    const storeMap = Object.fromEntries(stores.map((s: Store) => [s.id, s.name]));
 
     return (
         <main className="page">
@@ -125,50 +79,50 @@ export default function ProductsPage() {
                         <label className="filter-section-label">Search</label>
                         <div className="search-wrap">
                             <span className="search-icon" style={{ fontSize: '0.85rem' }}><Search size={14} /></span>
-                            <input className="form-input" placeholder="Name, SKU…" value={search}
-                                onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                            <input className="form-input" placeholder="Name, SKU…" value={filters.search}
+                                onChange={e => updateFilter({ search: e.target.value })} />
                         </div>
                     </div>
 
                     <div className="filter-section">
                         <label className="filter-section-label">Store</label>
-                        <select className="form-select" value={storeId} onChange={e => { setStoreId(e.target.value); setPage(1); }}>
+                        <select className="form-select" value={filters.storeId || ''} onChange={e => updateFilter({ storeId: e.target.value ? Number(e.target.value) : undefined })}>
                             <option value="">All stores</option>
-                            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            {stores.map((s: Store) => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
 
                     <div className="filter-section">
                         <label className="filter-section-label">Category</label>
-                        <select className="form-select" value={category} onChange={e => { setCategory(e.target.value); setPage(1); }}>
+                        <select className="form-select" value={filters.category} onChange={e => updateFilter({ category: e.target.value })}>
                             <option value="">All categories</option>
-                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                            {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
 
                     <div className="filter-section">
                         <label className="filter-section-label">Price (USD)</label>
                         <div className="range-row">
-                            <input className="form-input" type="number" placeholder="Min" min={0} value={minPrice}
-                                onChange={e => { setMinPrice(e.target.value); setPage(1); }} />
-                            <input className="form-input" type="number" placeholder="Max" min={0} value={maxPrice}
-                                onChange={e => { setMaxPrice(e.target.value); setPage(1); }} />
+                            <input className="form-input" type="number" placeholder="Min" min={0} value={filters.minPrice}
+                                onChange={e => updateFilter({ minPrice: e.target.value })} />
+                            <input className="form-input" type="number" placeholder="Max" min={0} value={filters.maxPrice}
+                                onChange={e => updateFilter({ maxPrice: e.target.value })} />
                         </div>
                     </div>
 
                     <div className="filter-section">
                         <label className="filter-section-label">Stock Level</label>
                         <div className="range-row">
-                            <input className="form-input" type="number" placeholder="Min" min={0} value={minStock}
-                                onChange={e => { setMinStock(e.target.value); setPage(1); }} />
-                            <input className="form-input" type="number" placeholder="Max" min={0} value={maxStock}
-                                onChange={e => { setMaxStock(e.target.value); setPage(1); }} />
+                            <input className="form-input" type="number" placeholder="Min" min={0} value={filters.minStock}
+                                onChange={e => updateFilter({ minStock: e.target.value })} />
+                            <input className="form-input" type="number" placeholder="Max" min={0} value={filters.maxStock}
+                                onChange={e => updateFilter({ maxStock: e.target.value })} />
                         </div>
                     </div>
 
                     <div className="filter-section">
                         <label className="filter-section-label">Sort By</label>
-                        <select className="form-select" value={sort} onChange={e => { setSort(e.target.value); setPage(1); }}>
+                        <select className="form-select" value={filters.sort} onChange={e => updateFilter({ sort: e.target.value })}>
                             <option value="created_at">Date Added</option>
                             <option value="name">Name</option>
                             <option value="price">Price</option>
@@ -178,7 +132,7 @@ export default function ProductsPage() {
 
                     <div className="filter-section">
                         <label className="filter-section-label">Order</label>
-                        <select className="form-select" value={order} onChange={e => { setOrder(e.target.value); setPage(1); }}>
+                        <select className="form-select" value={filters.order} onChange={e => updateFilter({ order: e.target.value })}>
                             <option value="asc">Ascending</option>
                             <option value="desc">Descending</option>
                         </select>
@@ -214,7 +168,7 @@ export default function ProductsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {products.map(p => (
+                                        {products.map((p: any) => (
                                             <tr key={p.id}>
                                                 <td>
                                                     <div>{p.name}</div>
@@ -246,24 +200,24 @@ export default function ProductsPage() {
                                     <button
                                         className="btn btn-ghost btn-sm"
                                         disabled={!pagination.has_prev}
-                                        onClick={() => setPage(p => p - 1)}
+                                        onClick={() => updateFilter({ page: filters.page! - 1 })}
                                     ><ChevronLeft size={16} /></button>
                                     {Array.from({ length: pagination.total_pages }, (_, i) => i + 1)
-                                        .filter(n => Math.abs(n - page) <= 2)
+                                        .filter(n => Math.abs(n - (filters.page || 1)) <= 2)
                                         .map(n => (
                                             <button
                                                 key={n}
-                                                className={`btn btn-sm ${n === page ? 'btn-primary' : 'btn-ghost'}`}
-                                                onClick={() => setPage(n)}
+                                                className={`btn btn-sm ${n === (filters.page || 1) ? 'btn-primary' : 'btn-ghost'}`}
+                                                onClick={() => updateFilter({ page: n })}
                                             >{n}</button>
                                         ))}
                                     <button
                                         className="btn btn-ghost btn-sm"
                                         disabled={!pagination.has_next}
-                                        onClick={() => setPage(p => p + 1)}
+                                        onClick={() => updateFilter({ page: filters.page! + 1 })}
                                     ><ChevronRight size={16} /></button>
                                     <span className="pagination-info">
-                                        {((page - 1) * LIMIT) + 1}–{Math.min(page * LIMIT, pagination.total)} of {pagination.total}
+                                        {(((filters.page || 1) - 1) * 15) + 1}–{Math.min((filters.page || 1) * 15, pagination.total)} of {pagination.total}
                                     </span>
                                 </div>
                             )}

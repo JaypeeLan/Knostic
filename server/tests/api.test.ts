@@ -100,7 +100,8 @@ describe('Products API', () => {
             category: 'Electronics', price: 19.99, quantity: 5, sku: 'EL#BAD',
         });
         assert.equal(res.status, 400);
-        assert.equal(res.body.error, 'Invalid SKU number');
+        assert.equal(res.body.error, 'Validation failed');
+        assert.ok(res.body.details.some((d: any) => d.message === 'Invalid SKU number'));
     });
 
     it('POST /api/products — rejects negative price', async () => {
